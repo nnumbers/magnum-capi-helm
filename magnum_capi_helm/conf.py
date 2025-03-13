@@ -130,6 +130,14 @@ capi_helm_opts = [
             "generated application credentials."
         ),
     ),
+    cfg.StrOpt(
+        "api_master_lb_cloud_allowed_cidrs",
+        default="",
+        help=(
+            "The CIDRs that must be added to api_master_lb_allowed_cidrs "
+            "list to allowed cloud control plane access the workload cluster."
+        ),
+    ),
 ]
 
 CONF = cfg.CONF
