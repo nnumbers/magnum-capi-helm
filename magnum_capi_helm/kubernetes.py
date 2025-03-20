@@ -71,7 +71,7 @@ class Client(requests.Session):
         if cleanup_file and ca_file:
             self._tempfiles.append(ca_file)
         if ca_file:
-            super.verify = ca_file
+            self.verify = ca_file
 
         # convert certs into files as required by requests
         # https://requests.readthedocs.io/en/latest/api/#requests.Session.cert
@@ -85,7 +85,7 @@ class Client(requests.Session):
         if cleanup_file and client_key:
             self._tempfiles.append(client_key)
         assert client_key is not None
-        super.cert = (client_cert, client_key)
+        self.cert = (client_cert, client_key)
 
     def __del__(self):
         # Remove any temporary certificate files this class owns.
