@@ -142,6 +142,10 @@ class Client(requests.Session):
         # Make sure to add the server to any relative URLs
         if re.match(r"^http(s)://", url) is None:
             url = "{}{}".format(self.server, url)
+        if ((not "verify" in kwargs) and (len(args) < 12)):
+            kwargs[ "verify" ] = self.verify
+        if ((not "cert" in kwargs) and len(args) < 13):
+            kwargs[ "cert" ] = self.cert
         response = super().request(method, url, *args, **kwargs)
         LOG.debug(
             'Kubernetes API request: "%s %s" %s',
