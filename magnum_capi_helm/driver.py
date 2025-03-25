@@ -750,9 +750,9 @@ class Driver(driver.Driver):
         )
 
     def _get_allowed_cidrs(self, context, cluster):
-        allowed_cidr_list = strutils.split_by_commas(
+        allowed_cidr_list = self._get_list_from_str(
             CONF.capi_helm.api_master_lb_cloud_allowed_cidrs
-            ) + strutils.split_by_commas(
+            ) + self._get_list_from_str(
                 cluster.labels.get("api_master_lb_allowed_cidrs", ""))
         if len(allowed_cidr_list) > 0:
             subnet_cidr = self._label(cluster, "fixed_subnet_cidr", "10.0.0.0/24")
@@ -764,6 +764,9 @@ class Driver(driver.Driver):
         
         LOG.debug(f"CIDR list {allowed_cidr_list}")
         return allowed_cidr_list
+    
+    def _get_list_from_str(self,value):
+        return value.split(",") if isinstance(value, str) and value != "" else []
 
     def _storageclass_definitions(self, context, cluster):
         """Query cinder API to retrieve list of available volume types.
