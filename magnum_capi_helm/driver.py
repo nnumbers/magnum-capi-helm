@@ -762,7 +762,7 @@ class Driver(driver.Driver):
                                                  "id", "cidr")
             allowed_cidr_list = allowed_cidr_list + [subnet_cidr]
         
-        LOG.debug(f"CIDR list {allowed_cidr_list}")
+        LOG.debug(f"Full allowed CIDR list {allowed_cidr_list}")
         return allowed_cidr_list
     
     def _get_list_from_str(self,value):
