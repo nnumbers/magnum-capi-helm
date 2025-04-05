@@ -232,9 +232,9 @@ class Driver(driver.Driver):
         nodegroup_name = driver_utils.sanitized_name(nodegroup.name)
         machines = self._k8s_client.get_all_machines_by_label(
             {
-                "capi.nnumbers.com.br/cluster": cluster_name,
-                "capi.nnumbers.com.br/component": "worker",
-                "capi.nnumbers.com.br/node-group": nodegroup_name,
+                "capi.stackhpc.com/cluster": cluster_name,
+                "capi.stackhpc.com/component": "worker",
+                "capi.stackhpc.com/node-group": nodegroup_name,
             },
             driver_utils.cluster_namespace(cluster),
         )
