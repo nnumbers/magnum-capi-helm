@@ -571,12 +571,6 @@ class Driver(driver.Driver):
             return strutils.split_by_commas(dns_nameserver)
         else:
             return None
-    
-    def _is_public(self, cluster):
-        return strutils.bool_from_string(
-                cluster.public, 
-                default=strutils.bool_from_string(
-                        cluster.cluster_template.public, default=False))
 
     def _get_monitoring_enabled(self, cluster):
         #  NOTE(mkjpryor) default off, like heat driver,
@@ -756,13 +750,6 @@ class Driver(driver.Driver):
         )
 
     def _get_allowed_cidrs(self, context, cluster):
-        # NOTE (morgany): because is mandatory to have public access from CAPI
-        #  cluster, it will always have floating IP in the LB. What will restrict
-        # to public access or private access are just CIDRs. If it is public it
-        # will be an open CIDR (0.0.0.0/0)
-        if self._is_public( cluster ):
-            return [ "0.0.0.0/0" ]
-        
         allowed_cidr_list = self._get_list_from_str(
             CONF.capi_helm.api_master_lb_cloud_allowed_cidrs
             ) + self._get_list_from_str(
