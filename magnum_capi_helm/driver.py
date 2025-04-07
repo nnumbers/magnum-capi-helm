@@ -761,9 +761,9 @@ class Driver(driver.Driver):
         # IP access will be restricted by IP in the 
         # CONF.capi_helm.api_master_lb_cloud_allowed_cidrs.
         # If floating_ip_enabled is True, the allowed CIDRs list will be set to
-        # 0.0.0.0/0, to an unrestricted access.
+        # empty, to an unrestricted access.
         if self._is_floating_ip_enabled( cluster ):
-            return [ "0.0.0.0/0" ]
+            return []
 
         allowed_cidr_list = self._get_list_from_str(
             CONF.capi_helm.api_master_lb_cloud_allowed_cidrs
