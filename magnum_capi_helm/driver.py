@@ -749,7 +749,22 @@ class Driver(driver.Driver):
             "SOURCE_IP_PORT" if provider.lower() == "ovn" else "ROUND_ROBIN",
         )
 
+    def _is_floating_ip_enabled(self, cluster):
+        return strutils.bool_from_string(
+                cluster.floating_ip_enabled, 
+                default=strutils.bool_from_string(
+                        cluster.cluster_template.floating_ip_enabled, default=False))
+
     def _get_allowed_cidrs(self, context, cluster):
+        # NOTE (morgany): because is mandatory to have public access from CAPI
+        #  cluster, it will always have floating IP in the LB, but the floating
+        # IP access will be restricted by IP in the 
+        # CONF.capi_helm.api_master_lb_cloud_allowed_cidrs.
+        # If floating_ip_enabled is True, the allowed CIDRs list will be set to
+        # 0.0.0.0/0, to an unrestricted access.
+        if self._is_floating_ip_enabled( cluster ):
+            return [ "0.0.0.0/0" ]
+
         allowed_cidr_list = self._get_list_from_str(
             CONF.capi_helm.api_master_lb_cloud_allowed_cidrs
             ) + self._get_list_from_str(
