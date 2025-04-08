@@ -15,7 +15,6 @@ import re
 from magnum.api import utils as api_utils
 from magnum.common import clients
 from magnum.common import exception
-from magnum.common import neutron
 from magnum.common import short_id
 from magnum.drivers.common import driver
 from magnum.objects import fields
@@ -602,16 +601,137 @@ class Driver(driver.Driver):
     def _get_k8s_keystone_auth_enabled(self, cluster):
         return self._get_label_bool(cluster, "keystone_auth_enabled", False)
 
-    def _get_fixed_network_id(self, context, cluster):
-        network = cluster.fixed_network
-        if not network:
-            return
-        if network and uuidutils.is_uuid_like(network):
+    def _get_network(self, context, network, external):
+        # NOTE(mkjpryor) inspired by magnum.common.neutron
+
+        n_client = clients.OpenStackClients(context).neutron()
+        filters = {"router:external": external}
+        if network:
+            if uuidutils.is_uuid_like(network):
+                filters["id"] = network
+            else:
+                filters["name"] = network
+        networks = n_client.list_networks(**filters).get("networks", [])
+
+        if len(networks) > 1:
+            if network:
+                raise exception.Conflict(
+                    f"Multiple networks exist with name '{network}'. "
+                    "Please use the network ID instead."
+                )
+            elif external:
+                raise exception.Conflict(
+                    "Multiple external networks found. "
+                    "Please specify one using the network ID."
+                )
+            else:
+                raise exception.Conflict(
+                    "Multiple networks found. "
+                    "Please specify one using the network ID."
+                )
+
+        return next(iter(networks), None)
+
+    def _get_subnet(self, context, subnet):
+        # NOTE(mkjpryor) inspired by magnum.common.neutron
+
+        n_client = clients.OpenStackClients(context).neutron()
+        filters = {}
+        if uuidutils.is_uuid_like(subnet):
+            filters["id"] = subnet
+        else:
+            filters["name"] = subnet
+        subnets = n_client.list_subnets(**filters).get("subnets", [])
+
+        if len(subnets) > 1:
+            raise exception.Conflict(
+                f"Multiple subnets exist with name '{subnet}'. "
+                "Please use the subnet ID instead."
+            )
+
+        return next(iter(subnets), None)
+
+    def _get_external_network_id(self, context, cluster):
+        # NOTE(mkjpryor)
+        # Even if no external network is specified, we still run the search
+        # without an ID or name filter
+        # This will make sure that we correctly identify _an_ external network
+        # and will also fail if there is more than one
+        # This is the same as CAPO but will explicitly report failures
+        external_network = self._get_network(
+            context,
+            cluster.cluster_template.external_network_id,
+            True
+        )
+        if external_network:
+            return external_network["id"]
+        else:
+            raise exception.ExternalNetworkNotFound(
+                network=cluster.cluster_template.external_network_id
+            )
+
+    def _get_cluster_fixed_network(self, context, cluster):
+        network = self._get_network(
+            context,
+            cluster.fixed_network,
+            False
+        )
+        if network:
             return network
         else:
-            return neutron.get_network(
-                context, network, source="name", target="id", external=False
+            raise exception.FixedNetworkNotFound(
+                network=cluster.fixed_network
             )
+
+    def _get_cluster_fixed_subnet(self, context, cluster, network):
+        subnet = self._get_subnet(context, cluster.fixed_subnet)
+        if subnet and subnet["network_id"] == network["id"]:
+            return subnet
+        elif subnet:
+            raise exception.Conflict(
+                f"Subnet {subnet['id']} does not "
+                f"belong to network {network['id']}."
+            )
+        else:
+            raise exception.FixedSubnetNotFound(
+                subnet=cluster.fixed_subnet
+            )
+
+    def _get_cluster_network(self, context, cluster):
+        network = None
+        subnet = None
+
+        if cluster.fixed_network:
+            network = self._get_cluster_fixed_network(
+                context,
+                cluster
+            )
+
+        if cluster.fixed_subnet:
+            subnet = self._get_cluster_fixed_subnet(
+                context,
+                cluster,
+                network
+            )
+
+        if network and subnet:
+            return (network["id"], subnet["id"])
+        elif network:
+            subnets = network.get("subnets", [])
+            if len(subnets) > 1:
+                raise exception.Conflict(
+                    f"Network {network['id']} has multiple subnets. "
+                    "Please specify one using the subnet ID."
+                )
+            if len(subnets) < 1:
+                raise exception.Conflict(
+                    f"Network {network['id']} has no subnets."
+                )
+            return (network["id"], subnets[0])
+        elif subnet:
+            return (subnet["network_id"], subnet["id"])
+        else:
+            return (None, None)
 
     def _validate_allowed_flavor(self, context, requested_flavor):
         # Compare requested flavor with allowed for Kubernetes node
@@ -772,9 +892,9 @@ class Driver(driver.Driver):
         if len(allowed_cidr_list) > 0:
             subnet_cidr = self._label(cluster, "fixed_subnet_cidr", "10.0.0.0/24")
             if cluster.fixed_subnet:
-                subnet_cidr = neutron.get_subnet(context,
-                                                 cluster.fixed_subnet,
-                                                 "id", "cidr")
+                subnet = self._get_subnet(context,cluster.fixed_subnet)
+                if subnet:
+                    subnet_cidr = subnet.cidr
             allowed_cidr_list = allowed_cidr_list + [subnet_cidr]
         
         LOG.debug(f"Full allowed CIDR list {allowed_cidr_list}")
@@ -862,8 +982,7 @@ class Driver(driver.Driver):
             context, cluster.cluster_template.image_id
         )
 
-        network_id = self._get_fixed_network_id(context, cluster)
-        subnet_id = neutron.get_fixed_subnet_id(context, cluster.fixed_subnet)
+        network_id, subnet_id = self._get_cluster_network(context, cluster)
 
         values = {
             "kubernetesVersion": kube_version,
@@ -877,8 +996,9 @@ class Driver(driver.Driver):
             },
             "clusterNetworking": {
                 "dnsNameservers": self._get_dns_nameservers(cluster),
-                "externalNetworkId": neutron.get_external_network_id(
-                    context, cluster.cluster_template.external_network_id
+                "externalNetworkId": self._get_external_network_id(
+                    context,
+                    cluster
                 ),
                 "internalNetwork": {
                     "networkFilter": (
