@@ -643,6 +643,9 @@ class Driver(driver.Driver):
             filters["name"] = subnet
         subnets = n_client.list_subnets(**filters).get("subnets", [])
 
+        if len(subnets) == 0:
+            raise exception.FixedSubnetNotFound(subnet=subnet)
+
         if len(subnets) > 1:
             raise exception.Conflict(
                 f"Multiple subnets exist with name '{subnet}'. "
@@ -894,6 +897,7 @@ class Driver(driver.Driver):
             if cluster.fixed_subnet:
                 subnet = self._get_subnet(context,cluster.fixed_subnet)
                 if subnet:
+                    LOG.debug("Fixed subnet CIDR %(subnet)s")
                     subnet_cidr = subnet.cidr
             allowed_cidr_list = allowed_cidr_list + [subnet_cidr]
         
