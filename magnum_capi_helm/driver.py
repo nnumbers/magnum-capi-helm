@@ -897,7 +897,7 @@ class Driver(driver.Driver):
             if cluster.fixed_subnet:
                 subnet = self._get_subnet(context,cluster.fixed_subnet)
                 if subnet:
-                    LOG.debug("Fixed subnet CIDR %(subnet)s")
+                    LOG.debug(f"Fixed subnet {subnet}")
                     subnet_cidr = subnet.cidr
             allowed_cidr_list = allowed_cidr_list + [subnet_cidr]
         
