@@ -878,6 +878,13 @@ class Driver(driver.Driver):
         else:
             return 1
         
+    def _is_master_lb_enabled(self, cluster):
+        return strutils.bool_from_string(
+            cluster.master_lb_enabled, 
+            default=strutils.bool_from_string(
+                cluster.cluster_template.master_lb_enabled,
+                default=True))
+    
     def _is_master_lb_floating_ip_enabled(self, cluster):
         return self._get_label_bool(cluster, 
                                     "master_lb_floating_ip_enabled", 
@@ -885,7 +892,7 @@ class Driver(driver.Driver):
                                         cluster.cluster_template, 
                                         "master_lb_floating_ip_enabled", 
                                         False ) )
-    
+
     def _get_allowed_cidrs(self, context, cluster):
         # NOTE (morgany): because is mandatory to have public access from CAPI cluster, it
         # will always have floating IP in the LB, but  the  floating  IP  access  will  be
@@ -998,7 +1005,7 @@ class Driver(driver.Driver):
             "cloudCredentialsSecretName": self._get_app_cred_name(cluster),
             "etcd": self._get_etcd_config(cluster),
             "apiServer": {
-                "enableLoadBalancer": True,
+                "enableLoadBalancer": self._is_master_lb_enabled(cluster),
                 "loadBalancerProvider": self._get_octavia_provider(cluster),
             },
             "clusterNetworking": {
