@@ -879,6 +879,7 @@ class Driver(driver.Driver):
             return 1
         
     def _is_master_lb_enabled(self, cluster):
+
         return strutils.bool_from_string(
             cluster.master_lb_enabled, 
             default=strutils.bool_from_string(
@@ -897,7 +898,8 @@ class Driver(driver.Driver):
         allowed_cidr_list = self._get_list_from_str(
             CONF.capi_helm.api_master_lb_cloud_allowed_cidrs
             ) + self._get_list_from_str(
-                cluster.labels.get("api_master_lb_allowed_cidrs", ""))
+                self._label(cluster, "api_master_lb_allowed_cidrs", ""))
+        
         if len(allowed_cidr_list) > 0:
             subnet_cidr = self._label(cluster, "fixed_subnet_cidr", "10.0.0.0/24")
             if cluster.fixed_subnet:
