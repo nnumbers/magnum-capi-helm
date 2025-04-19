@@ -886,12 +886,8 @@ class Driver(driver.Driver):
                 default=True))
     
     def _is_master_lb_floating_ip_enabled(self, cluster):
-        return self._get_label_bool(cluster, 
-                                    "master_lb_floating_ip_enabled", 
-                                    self._get_label_bool( 
-                                        cluster.cluster_template, 
-                                        "master_lb_floating_ip_enabled", 
-                                        False ) )
+        return self._get_label_bool(
+            cluster, "master_lb_floating_ip_enabled", False )
 
     def _get_allowed_cidrs(self, context, cluster):
         # NOTE (morgany): because is mandatory to have public access from CAPI cluster, it
