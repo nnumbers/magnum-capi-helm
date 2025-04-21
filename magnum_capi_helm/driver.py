@@ -873,7 +873,7 @@ class Driver(driver.Driver):
         )
     
     def _get_master_count( self, cluster ):
-        if self._is_master_lb_floating_ip_enabled( cluster ):
+        if self._is_master_lb_enabled( cluster ):
             return cluster.master_count
         else:
             return 1
@@ -886,10 +886,6 @@ class Driver(driver.Driver):
                 cluster.cluster_template.master_lb_enabled,
                 default=True))
     
-    def _is_master_lb_floating_ip_enabled(self, cluster):
-        return self._get_label_bool(
-            cluster, "master_lb_floating_ip_enabled", False )
-
     def _get_allowed_cidrs(self, context, cluster):
         # NOTE (morgany): because is mandatory to have public access from CAPI cluster, it
         # will always have floating IP in the LB, but  the  floating  IP  access  will  be
