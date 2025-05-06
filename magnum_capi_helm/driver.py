@@ -579,6 +579,21 @@ class Driver(driver.Driver):
     def _get_kube_dash_enabled(self, cluster):
         #  NOTE(mkjpryor) default on, like the heat driver
         return self._get_label_bool(cluster, "kube_dashboard_enabled", True)
+    
+    def _get_ingress_controller_cfg(self, cluster):
+        result = { "enabled": False }
+
+        if self._is_ingress_controller_enabled(cluster):
+            result[ "enabled" ] = True
+            result[ self._get_ingress_controller(cluster) ] = { "enabled": True }
+
+        return result
+
+    def _get_ingress_controller(self, cluster):
+        return self._label(cluster, "ingress_controller", "")
+
+    def _is_ingress_controller_enabled(self, cluster):
+        return self._get_ingress_controller(cluster) != ""
 
     def _get_autoheal_enabled(self, cluster):
         return self._get_label_bool(cluster, "auto_healing_enabled", True)
@@ -1056,9 +1071,7 @@ class Driver(driver.Driver):
                 "kubernetesDashboard": {
                     "enabled": self._get_kube_dash_enabled(cluster)
                 },
-                # TODO(mkjpryor): can't enable ingress until code exists to
-                #                 remove the load balancer
-                "ingress": {"enabled": False},
+                "ingress": self._get_ingress_controller_cfg(cluster),
             },
         }
 
