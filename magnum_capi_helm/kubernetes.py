@@ -286,23 +286,23 @@ class Secret(Resource):
 
 
 class Cluster(Resource):
-    api_version = "cluster.x-k8s.io/v1beta2"
+    api_version = "cluster.x-k8s.io/v1beta1"
 
 
 class OpenstackCluster(Resource):
-    api_version = "infrastructure.cluster.x-k8s.io/v1beta2"
+    api_version = "infrastructure.cluster.x-k8s.io/v1beta1"
 
 
 class MachineDeployment(Resource):
-    api_version = "cluster.x-k8s.io/v1beta2"
+    api_version = "cluster.x-k8s.io/v1beta1"
 
 
 class KubeadmControlPlane(Resource):
-    api_version = "controlplane.cluster.x-k8s.io/v1beta2"
+    api_version = "controlplane.cluster.x-k8s.io/v1beta1"
 
 
 class Machine(Resource):
-    api_version = "cluster.x-k8s.io/v1beta2"
+    api_version = "cluster.x-k8s.io/v1beta1"
 
 
 class Manifests(Resource):
